@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sleep Sleeve — Magic cards as Xteink sleep screens</title>
+  <meta name="description" content="Turn Scryfall card scans into dithered 4-shade sleep screens for Xteink X3 and X4 readers running CrossPoint. Everything runs in your browser.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='1' width='10' height='14' rx='1.5' fill='%23555'/%3E%3Crect x='4.5' y='2.5' width='7' height='11' fill='%23fff'/%3E%3Cpath d='M4.5 9h7v4.5h-7z' fill='%23aaa'/%3E%3Cpath d='M4.5 11h7v2.5h-7z' fill='%23000'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the editor</a>
+
+  <header class="masthead">
+    <div class="masthead-text">
+      <h1>Sleep Sleeve</h1>
+      <p class="lede">Magic card scans from Scryfall, dithered to the four shades an Xteink panel can show. Pick cards, tune the tone, download sleep screens for CrossPoint. Nothing leaves your browser except the requests to Scryfall.</p>
+    </div>
+    <canvas class="ramp" id="ramp" aria-hidden="true"></canvas>
+  </header>
+
+  <main id="main">
+    <section class="source" aria-labelledby="source-h">
+      <h2 id="source-h" class="visually-hidden">Cards and devices</h2>
+      <form class="load-form" id="load-form" autocomplete="off">
+        <label for="link" class="field-label">Scryfall card, set or search link</label>
+        <div class="load-row">
+          <input id="link" name="link" type="text" inputmode="url" spellcheck="false"
+                 placeholder="https://scryfall.com/sets/blb  or  t:dragon r:mythic">
+          <button type="submit" class="btn btn-ink" id="load-btn">Load cards</button>
+        </div>
+        <p class="status" id="load-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <fieldset class="devices">
+        <legend class="field-label">Make screens for</legend>
+        <div class="toggle-row" id="device-toggles">
+          <button type="button" class="toggle" data-model="x3" aria-pressed="false">
+            <span class="toggle-name">X3</span><span class="toggle-meta">528 × 792, 3.7″</span>
+          </button>
+          <button type="button" class="toggle" data-model="x4" aria-pressed="false">
+            <span class="toggle-name">X4, X4 Pro, X4 Classic</span><span class="toggle-meta">480 × 800, 4.3″</span>
+          </button>
+        </div>
+      </fieldset>
+    </section>
+
+    <div class="workspace">
+      <section class="cards" aria-labelledby="cards-h">
+        <div class="pane-head">
+          <div>
+            <h2 id="cards-h">Cards</h2>
+            <p class="count" id="card-count"></p>
+          </div>
+          <div class="pane-actions" role="group" aria-label="Include in download">
+            <button type="button" class="link-btn" id="select-all">Include all</button>
+            <button type="button" class="link-btn" id="select-none">None</button>
+          </div>
+        </div>
+        <ul class="card-list" id="card-list" aria-label="Loaded cards"></ul>
+        <div class="empty" id="cards-empty">
+          <p>Paste a link above, or try one of these:</p>
+          <ul class="examples">
+            <li><button type="button" class="link-btn" data-example="https://scryfall.com/sets/blb">A whole set: Bloomburrow</button></li>
+            <li><button type="button" class="link-btn" data-example="https://scryfall.com/search?q=a%3A%22rebecca+guay%22+t%3Aenchantment&unique=art">A search: Rebecca Guay enchantments, one per artwork</button></li>
+            <li><button type="button" class="link-btn" data-example="t:dragon r:mythic">Search syntax: t:dragon r:mythic</button></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="stage" aria-labelledby="stage-h">
+        <div class="pane-head">
+          <h2 id="stage-h">Preview</h2>
+          <div class="stage-tools">
+          <div class="seg seg-small" id="device-tabs" role="group" aria-label="Reader shown" hidden></div>
+          <div class="seg seg-small" role="group" aria-label="Preview view">
+            <button type="button" class="seg-btn" data-view="dither" aria-pressed="true">Dithered</button>
+            <button type="button" class="seg-btn" data-view="gray" aria-pressed="false">Before dithering</button>
+          </div>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="previews" id="previews"></div>
+          <div class="card-meta" id="card-meta"></div>
+          <div class="faces" id="faces" hidden></div>
+          <div class="printings" id="printings-wrap" hidden>
+            <div class="printings-head">
+              <h3>Other printings</h3>
+              <label class="check"><input type="checkbox" id="unique-art" checked> One per artwork</label>
+            </div>
+            <ul class="printings-list" id="printings"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls" aria-labelledby="controls-h">
+        <h2 id="controls-h" class="visually-hidden">Settings</h2>
+
+        <fieldset class="group">
+          <legend>Image</legend>
+          <div class="seg" role="group" aria-label="Scan">
+            <button type="button" class="seg-btn" data-set="source" data-value="png">Full card</button>
+            <button type="button" class="seg-btn" data-set="source" data-value="border_crop">Border crop</button>
+            <button type="button" class="seg-btn" data-set="source" data-value="art_crop">Art only</button>
+          </div>
+          <p class="hint" id="source-hint"></p>
+          <div class="field">
+            <span class="field-label" id="rotate-l">Rotate</span>
+            <div class="seg" role="group" aria-labelledby="rotate-l">
+              <button type="button" class="seg-btn" data-set="rotate" data-value="0">None</button>
+              <button type="button" class="seg-btn" data-set="rotate" data-value="90">90° right</button>
+              <button type="button" class="seg-btn" data-set="rotate" data-value="270">90° left</button>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Placement</legend>
+          <div class="fit-grid" role="group" aria-label="Fit">
+            <button type="button" class="seg-btn" data-set="fit" data-value="contain" title="Whole image visible, bars where the shape differs">Fit whole</button>
+            <button type="button" class="seg-btn" data-set="fit" data-value="cover" title="No bars, edges cropped">Fill screen</button>
+            <button type="button" class="seg-btn" data-set="fit" data-value="width" title="Match the screen width">Fill width</button>
+            <button type="button" class="seg-btn" data-set="fit" data-value="height" title="Match the screen height">Fill height</button>
+            <button type="button" class="seg-btn" data-set="fit" data-value="stretch" title="Distort to exactly match the screen">Stretch</button>
+            <button type="button" class="seg-btn" data-set="fit" data-value="integer" title="Largest exact 2×, 3× or ½, ⅓ that fits">Integer scale</button>
+            <button type="button" class="seg-btn" data-set="fit" data-value="native" title="One scan pixel per screen pixel">1 : 1 pixels</button>
+          </div>
+          <p class="hint" id="fit-hint"></p>
+          <label class="range" data-for="zoom"><span>Zoom</span><input type="range" min="50" max="250" step="1" data-set="zoom"><output></output></label>
+          <label class="range" data-for="alignX"><span>Horizontal position</span><input type="range" min="0" max="1" step="0.01" data-set="alignX"><output></output></label>
+          <label class="range" data-for="alignY"><span>Vertical position</span><input type="range" min="0" max="1" step="0.01" data-set="alignY"><output></output></label>
+          <div class="field">
+            <label class="field-label" for="resample">Resampling</label>
+            <select id="resample" data-set="resample">
+              <option value="lanczos3">Lanczos 3 (sharpest)</option>
+              <option value="mitchell">Mitchell (softer, no ringing)</option>
+              <option value="box">Area average</option>
+              <option value="nearest">Nearest pixel</option>
+            </select>
+          </div>
+          <div class="field">
+            <span class="field-label" id="bg-l">Background</span>
+            <div class="seg swatches" role="group" aria-labelledby="bg-l">
+              <button type="button" class="seg-btn sw" data-set="background" data-value="white"><i style="background:#fff"></i>White</button>
+              <button type="button" class="seg-btn sw" data-set="background" data-value="light"><i style="background:#aaa"></i>Light</button>
+              <button type="button" class="seg-btn sw" data-set="background" data-value="dark"><i style="background:#555"></i>Dark</button>
+              <button type="button" class="seg-btn sw" data-set="background" data-value="black"><i style="background:#000"></i>Black</button>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Tone</legend>
+          <label class="check"><input type="checkbox" data-set="autoLevels"> Stretch levels to full black and white</label>
+          <label class="range" data-for="brightness"><span>Brightness</span><input type="range" min="-50" max="50" step="1" data-set="brightness"><output></output></label>
+          <label class="range" data-for="contrast"><span>Contrast</span><input type="range" min="-50" max="80" step="1" data-set="contrast"><output></output></label>
+          <label class="range" data-for="gamma"><span>Midtones</span><input type="range" min="0.5" max="2" step="0.01" data-set="gamma"><output></output></label>
+          <label class="range" data-for="sharpen"><span>Sharpen</span><input type="range" min="0" max="200" step="5" data-set="sharpen"><output></output></label>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Dithering</legend>
+          <div class="field">
+            <span class="field-label" id="shades-l">Shades</span>
+            <div class="seg" role="group" aria-labelledby="shades-l">
+              <button type="button" class="seg-btn" data-set="shades" data-value="4">4 grays</button>
+              <button type="button" class="seg-btn" data-set="shades" data-value="2">Black and white</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="dither">Pattern</label>
+            <select id="dither" data-set="dither">
+              <option value="floyd-steinberg">Floyd–Steinberg</option>
+              <option value="atkinson">Atkinson</option>
+              <option value="jarvis-judice-ninke">Jarvis, Judice &amp; Ninke</option>
+              <option value="stucki">Stucki</option>
+              <option value="burkes">Burkes</option>
+              <option value="sierra">Sierra</option>
+              <option value="sierra-lite">Sierra Lite</option>
+              <option value="bayer">Bayer 8×8 (ordered)</option>
+              <option value="none">None (nearest shade)</option>
+            </select>
+          </div>
+          <label class="range" data-for="diffusion"><span>Strength</span><input type="range" min="0" max="100" step="1" data-set="diffusion"><output></output></label>
+          <label class="check"><input type="checkbox" data-set="serpentine"> Alternate row direction</label>
+          <details class="more">
+            <summary>Panel calibration</summary>
+            <p class="hint">The ditherer assumes the two middle grays look like these values. If shadows look too dark on your reader, raise them; if they look washed out, lower them. Files always use CrossPoint's native palette, so this only changes how tones are mixed.</p>
+            <label class="range" data-for="mid1"><span>Dark gray</span><input type="range" min="0.15" max="0.5" step="0.005" data-set="mid1"><output></output></label>
+            <label class="range" data-for="mid2"><span>Light gray</span><input type="range" min="0.5" max="0.85" step="0.005" data-set="mid2"><output></output></label>
+            <label class="check"><input type="checkbox" data-set="ditherLinear"> Mix tones in linear light</label>
+            <button type="button" class="link-btn" id="reset-cal">Reset calibration</button>
+          </details>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Credit</legend>
+          <div class="field">
+            <label class="field-label" for="credit">Artist credit line</label>
+            <select id="credit" data-set="credit">
+              <option value="auto">When the card's own credit is cropped</option>
+              <option value="always">Always</option>
+              <option value="never">Never</option>
+            </select>
+          </div>
+        </fieldset>
+      </section>
+    </div>
+  </main>
+
+  <footer class="export" aria-labelledby="export-h">
+    <h2 id="export-h" class="visually-hidden">Download</h2>
+    <div class="export-opts">
+      <div class="field">
+        <label class="field-label" for="format">File type</label>
+        <select id="format" data-set="format">
+          <option value="bmp4">4-bit BMP, native palette (recommended)</option>
+          <option value="bmp1">1-bit BMP, black and white</option>
+          <option value="bmp24">24-bit BMP</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="folder">Folder in the ZIP</label>
+        <select id="folder" data-set="folder">
+          <option value=".sleep">.sleep (CrossPoint's recommended name)</option>
+          <option value="sleep">sleep (visible in Finder and Explorer)</option>
+        </select>
+      </div>
+      <label class="check"><input type="checkbox" data-set="bothFaces"> Both faces of double-faced cards</label>
+    </div>
+    <div class="export-go">
+      <p class="status" id="export-status" role="status" aria-live="polite"></p>
+      <div class="progress" id="export-progress" hidden><div></div></div>
+      <button type="button" class="btn btn-ink" id="export-btn">Download ZIP</button>
+      <button type="button" class="btn" id="cancel-btn" hidden>Stop</button>
+    </div>
+  </footer>
+
+  <p class="fine">Card images and data from <a href="https://scryfall.com" rel="noopener">Scryfall</a>. Magic: The Gathering card art and text are © Wizards of the Coast. Sleep Sleeve is unofficial Fan Content and isn't endorsed by Scryfall or Wizards of the Coast.</p>
+
+  <script src="js/pipeline.js"></script>
+  <script src="js/encoders.js"></script>
+  <script src="js/scryfall.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
