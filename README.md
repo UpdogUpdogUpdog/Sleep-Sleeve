@@ -2,6 +2,20 @@
 
 Turns Magic: The Gathering card scans from Scryfall into dithered sleep screens for Xteink readers running CrossPoint. All image processing happens in the browser; the only network traffic is to `api.scryfall.com` (card data) and `cards.scryfall.io` (scans).
 
+
+**[Open Sleep Sleeve](https://updogupdogupdog.github.io/Sleep-Sleeve/)**
+
+- [Try it with Bloomburrow](https://updogupdogupdog.github.io/Sleep-Sleeve/?link=https://scryfall.com/sets/blb)
+
+# BIG FUCKIN DISCLAIMER
+I wrote NONE of this code. All Claude. Vibecoded is an understatement. It's unashamedly the result of a single prompt. 
+
+Support artists. Support authors. Support developers. 
+
+
+Hosted serverless on GitHub pages.
+If you want to host this yourself...
+
 ## Publish on GitHub Pages
 
 1. Create a repository and upload everything in this folder, keeping the structure (`index.html`, `css/`, `js/`, `.nojekyll`) at the repository root.
