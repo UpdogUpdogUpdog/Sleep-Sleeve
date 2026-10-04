@@ -2,6 +2,8 @@
 
 Turns Magic: The Gathering card scans from Scryfall into dithered sleep screens for Xteink readers running CrossPoint. All image processing happens in the browser; the only network traffic is to `api.scryfall.com` (card data) and `cards.scryfall.io` (scans).
 
+<img width="406" height="503" alt="image" src="https://github.com/user-attachments/assets/6ec17b9d-dbba-4ec1-852f-474cecfb8edf" />
+
 
 **[Open Sleep Sleeve](https://updogupdogupdog.github.io/Sleep-Sleeve/)**
 
